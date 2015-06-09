@@ -5,5 +5,5 @@
 *.obj
 *.elf
 
-# metadata folder
-
+# metadata
+.metadata/*
