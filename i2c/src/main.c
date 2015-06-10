@@ -136,11 +136,11 @@ int main(void)
 	//Escritura
 
 	//Define el registro que se va a leer
-	wbuf[0] = 0x6B; //En el registro 0x6B (107) se supone que deberia leerse siempre un 0x40
+	wbuf[0] = STATIC_0x40_REFERENCE_REGISTER; //En el registro 0x6B (107) se supone que deberia leerse siempre un 0x40
 
 	//Lectura
 
-	I2C_XFER_T_config(&xfer, rbuf, 10, 0x68, 0, wbuf, 1);
+	I2C_XFER_T_config(&xfer, rbuf, 10, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
 
 	//Resuelve el protocolo i2c, solo nos comunicamos como master con el slave (MPU6050)
 	Chip_I2C_MasterTransfer(I2C1, &xfer);
