@@ -77,6 +77,7 @@
  *	@return none
  */
 static void initHardware(void);
+void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
 
 /*==================[internal data definition]===============================*/
 
@@ -132,13 +133,7 @@ int main(void)
 
 	//Lectura
 
-	xfer.rxBuff = rbuf; //Buffer de lectura
-	xfer.rxSz = 10;	//cantidad de bytes que se desean leer, arbitrariamente seteamos 10
-	xfer.slaveAddr = 0x68; //Adress estatica del dispositivo i2c a leer (MPU6050)
-	xfer.status = 0;
-	xfer.txBuff = wbuf; //Buffer de escritura
-	xfer.txSz = 1; //cantidad de bytes que se desean escribir, solo escribimos el registro desde
-					//el que comenzamos a leer
+	I2C_XFER_T_config(&xfer, rbuf, 10, 0x68, 0, wbuf, 1);
 
 	//Resuelve el protocolo i2c, solo nos comunicamos como master con el slave (MPU6050)
 	Chip_I2C_MasterTransfer(I2C1, &xfer);
@@ -146,6 +141,21 @@ int main(void)
 	while(1);
 
 }
+
+void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz)
+{
+	xfer->rxBuff = rbuf; //Buffer de lectura
+	xfer->rxSz = rxSz;	//cantidad de bytes que se desean leer, arbitrariamente seteamos 10
+	xfer->slaveAddr = slaveAddr; //Adress estatica del dispositivo i2c a leer (MPU6050)
+	xfer->status = status;
+	xfer->txBuff = wbuf; //Buffer de escritura
+	xfer->txSz = txSz; //cantidad de bytes que se desean escribir, solo escribimos el registro desde
+					//el que comenzamos a leer
+}
+
+
+
+
 
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
