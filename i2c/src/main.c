@@ -113,15 +113,17 @@ static void initHardware(void)
 
 /*==================[external functions definition]==========================*/
 
-//TODO: Leer 10 veces el registro estatico
+//TODO: Leer 10 veces el registro de Acelerometro en X, esto nos dara 5 datos
+//	  	compuestos de 2 bytes cada uno (parte high y low)
 
 
 int main(void)
 {
 	/*==================[Inicializacion]==========================*/
-	uint8_t wbuf[3] = {0,0,0};
+	uint8_t wbuf[2] = {0,0};
 	uint8_t rbuf[20];
-	uint8_t samples[10] = {0,0,0,0,0,0,0,0,0,0};
+	uint16_t samples[10] = {0,0,0,0,0,0,0,0,0,0}; //cada posicion es de 16 bits, necesario para guardar
+												  //la parte low y high de las muestras de accel
 	//uint32_t i;
 	I2C_XFER_T xfer;
 
@@ -136,7 +138,10 @@ int main(void)
 	//Escritura
 
 	//Define el registro que se va a leer
-	wbuf[0] = STATIC_0x40_REFERENCE_REGISTER; //En el registro 0x6B (107) se supone que deberia leerse siempre un 0x40
+	wbuf[0] = ACCEL_XOUT_H; //Parte high de la lectura en x del acelerometro
+							//Como la lectura se realiza de forma secuencial, en la posicion 0
+							//del rbuf ira este dato y en la posicion 1 ira la correspondiente a
+							//la posicion siguiente, osea ACCEL_XOUT_L (0x3C)
 
 	//Lectura
 
@@ -149,12 +154,14 @@ int main(void)
 	{
 		Chip_I2C_MasterTransfer(I2C1, &xfer);
 
-		if(i<20)
+		if(i<10) //Tamaño maximo de muestras
 		{
 			//TODO: Por que no funciona???
 			//samples[i]=xfer.rxBuff[0];
-			//De momento leer rbuf es lo mismo que ñeer xfer.rxBuff porque apuntan a la misma direccion
-			samples[i]=rbuf[0];
+			//De momento leer rbuf es lo mismo que leer xfer.rxBuff porque apuntan a la misma direccion
+			samples[i]=(rbuf[0] << 8) | rbuf[1]; //Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR
+												//para tener en los 8 primeros la parte baja
+
 			i++;
 		}
 		else
@@ -163,6 +170,8 @@ int main(void)
 			//TODO: Por que no funciona???
 			//samples[i]=xfer.rxBuff[0];
 			samples[i]=rbuf[0];
+			samples[i]=(rbuf[0] << 8) | rbuf[1]; //Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR
+															//para tener en los 8 primeros la parte baja
 			i++;
 		}
 	}

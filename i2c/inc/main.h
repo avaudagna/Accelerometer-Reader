@@ -65,6 +65,8 @@ extern "C" {
 
 #define MPU6050_I2C_SLAVE_ADDRESS 0x68
 #define STATIC_0x40_REFERENCE_REGISTER 0x6B
+#define ACCEL_XOUT_H 0x3B
+#define ACCEL_XOUT_L 0x3C
 
 /*==================[typedef]================================================*/
 
