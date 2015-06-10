@@ -113,13 +113,20 @@ static void initHardware(void)
 
 /*==================[external functions definition]==========================*/
 
+//TODO: Leer 10 veces el registro estatico
+
+
 int main(void)
 {
 	/*==================[Inicializacion]==========================*/
 	uint8_t wbuf[3] = {0,0,0};
 	uint8_t rbuf[20];
-	uint32_t i;
+	uint8_t samples[10] = {0,0,0,0,0,0,0,0,0,0};
+	//uint32_t i;
 	I2C_XFER_T xfer;
+
+	int i =0;
+
 
 	initHardware();
 
@@ -138,9 +145,29 @@ int main(void)
 	//Resuelve el protocolo i2c, solo nos comunicamos como master con el slave (MPU6050)
 	Chip_I2C_MasterTransfer(I2C1, &xfer);
 
-	while(1);
+	while(1)
+	{
+		Chip_I2C_MasterTransfer(I2C1, &xfer);
 
+		if(i<20)
+		{
+			//TODO: Por que no funciona???
+			//samples[i]=xfer.rxBuff[0];
+			//De momento leer rbuf es lo mismo que ñeer xfer.rxBuff porque apuntan a la misma direccion
+			samples[i]=rbuf[0];
+			i++;
+		}
+		else
+		{
+			i=0;
+			//TODO: Por que no funciona???
+			//samples[i]=xfer.rxBuff[0];
+			samples[i]=rbuf[0];
+			i++;
+		}
+	}
 }
+
 
 void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz)
 {
