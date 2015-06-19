@@ -66,9 +66,12 @@
 #include <cr_section_macros.h>
 
 #include "main.h"
-
 /*==================[macros and definitions]=================================*/
-
+#define MPU6050_DEVICE_ADDRESS   0x68
+#define MPU6050_RA_ACCEL_XOUT_H  0x3B
+#define MPU6050_RA_PWR_MGMT_1    0x6B
+#define MPU6050_RA_PWR_MGMT_2    0x6C
+#define MPU6050_PWR1_SLEEP_BIT   6
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -76,7 +79,6 @@
 /** @brief hardware initialization function
  *	@return none
  */
-static void initHardware(void);
 
 /*==================[internal data definition]===============================*/
 
@@ -107,17 +109,24 @@ static void initHardware(void)
 
     Chip_I2C_SetClockRate(I2C1, 100000);
 	Chip_I2C_SetMasterEventHandler(I2C1, Chip_I2C_EventHandlerPolling);
-
 }
 
 /*==================[external functions definition]==========================*/
 
+//TODO: Leer 10 veces el registro de Acelerometro en X, esto nos dara 5 datos
+//	  	compuestos de 2 bytes cada uno (parte high y low)
+
+
 int main(void)
 {
 	/*==================[Inicializacion]==========================*/
-	uint8_t wbuf[3] = {0,0,0};
-	uint8_t rbuf[20];
-	uint32_t i;
+	uint8_t wbuf[2] = {0,0};
+	uint8_t rbuf[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint16_t samples[10] = {0,0,0,0,0,0,0,0,0,0}; //cada posicion es de 16 bits, necesario para guardar
+												  //la parte low y high de las muestras de accel
+	//uint32_t ii;
+	//uint32_t i;
+
 	I2C_XFER_T xfer;
 
 	initHardware();
@@ -128,23 +137,97 @@ int main(void)
 	//Escritura
 
 	//Define el registro que se va a leer
-	wbuf[0] = 0x6B; //En el registro 0x6B (107) se supone que deberia leerse siempre un 0x40
+	//wbuf[0] = MPU6050_RA_ACCEL_XOUT_H; //Parte high de la lectura en x del acelerometro
+							//Como la lectura se realiza de forma secuencial, en la posicion 0
+							//del rbuf ira este dato y en la posicion 1 ira la correspondiente a
+							//la posicion siguiente, osea ACCEL_XOUT_L (0x3C)
 
-	//Lectura
 
-	xfer.rxBuff = rbuf; //Buffer de lectura
-	xfer.rxSz = 10;	//cantidad de bytes que se desean leer, arbitrariamente seteamos 10
-	xfer.slaveAddr = 0x68; //Adress estatica del dispositivo i2c a leer (MPU6050)
-	xfer.status = 0;
-	xfer.txBuff = wbuf; //Buffer de escritura
-	xfer.txSz = 1; //cantidad de bytes que se desean escribir, solo escribimos el registro desde
+	MPU6050_wakeup(&xfer);
+
+	wbuf[0] = MPU6050_RA_PWR_MGMT_1;
+
+	//Lectura de PWR_MGMMT_1 2
+	I2C_XFER_T_config(&xfer, rbuf, 2, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+
+
+	wbuf[0]=MPU6050_RA_ACCEL_XOUT_H;
+	wbuf[1]=0;
+
+	while(1)
+	{
+	//	for(ii=0;ii<1000000;ii++);
+
+		I2C_XFER_T_config(&xfer, rbuf, 14, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+
+		//De momento leer rbuf es lo mismo que leer xfer.rxBuff porque apuntan a la misma direccion
+		samples[0]=(rbuf[0] << 8) | rbuf[1]; //Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR
+											//para tener en los 8 primeros la parte baja
+		samples[1]=(rbuf[2] << 8) | rbuf[3];
+		samples[2]=(rbuf[4] << 8) | rbuf[5];
+		samples[3]=(rbuf[6] << 8) | rbuf[7];
+		samples[4]=(rbuf[8] << 8) | rbuf[9];
+		samples[5]=(rbuf[10] << 8) | rbuf[11];
+		samples[6]=(rbuf[12] << 8) | rbuf[13];
+
+	}
+
+	return 0;
+}
+
+/*
+ * Configura la estructura XFER para realizar la comunicacion i2c.
+ * * xfer	  : Puntero a la estructura del tipo I2C_XFER_T necesaria para utilizar la funcion Chip_I2C_MasterTransfer.
+ * 				Chip_I2C_MasterTransfer : Funcion que resuelve la interaccion i2c en funcion de lo especificado en la estructura I2C_XFER_T
+ *	 rbuf 	  : Puntero al buffer de lectura donde se volcaran los bytes leidos
+ *	 rxSz 	  : Cantidad de bytes que se leeran y volcaran en rbuf
+ *	 slaveAddr: Direccion estatica del slave con el que se desea comunicar
+ *	 status   : Estado de la comunicacion, (estado inicial 0)
+ *	 wbuf	  : Buffer de escritura donde se colocara tanto el registro que se desea escribir como el dato que desea ser escrito
+ *	 			Ej de uso: wbuf[] = {reg_inicial, dato} solo escribe el byte dato en reg_inicial
+ *	 					   wbuf[] = {reg_inicial, dato1, dato2} escribe el byte dato1 en reg_incial y dato2 en reg_inicial+1 (el registro siguiente)
+ *	 txSz	  : La cantidad de bytes que se desean enviar, osea empezando a leer wbuf desde 0 inclusive, cuantos bytes manda de ese buffer
+ *	 			Ej : wbuf[] = {reg_inicial, dato1, dato2}, entonces txSz deberia ser = 3
+ *	 				 wbuf[] = {reg_inicial}, (caso tipico de solo lectura de ese registro), entonces txSz deberia ser = 1
+ */
+
+void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz)
+{
+	xfer->rxBuff = rbuf; //Buffer de lectura
+	xfer->rxSz = rxSz;	//cantidad de bytes que se desean leer, arbitrariamente seteamos 10
+	xfer->slaveAddr = slaveAddr; //Adress estatica del dispositivo i2c a leer (MPU6050)
+	xfer->status = status;
+	xfer->txBuff = wbuf; //Buffer de escritura
+	xfer->txSz = txSz; //cantidad de bytes que se desean escribir, solo escribimos el registro desde
 					//el que comenzamos a leer
+	do{
+		Chip_I2C_MasterTransfer(I2C1, xfer);
+	}while(xfer->status != I2C_STATUS_DONE);
 
-	//Resuelve el protocolo i2c, solo nos comunicamos como master con el slave (MPU6050)
-	Chip_I2C_MasterTransfer(I2C1, &xfer);
+}
 
-	while(1);
+/*
+ * Se encarga de inicializar los registros de PWR_MGMT necesarios para habilitar los
+ *  sensores (acelerometro y giroscopo) en cada eje, para sus lecturas.
+ *  La configuracion en la que quedan seteados es la por defecto:
+ *  accelerometer (±2g) , gyroscope (±250°/sec).
+ *
+ *  * xfer : Puntero a la estructura del tipo I2C_XFER_T necesaria para la utilizacion de Chip_I2C_MasterTransfer.
+ *  		 Chip_I2C_MasterTransfer : Funcion que resuelve la interaccion i2c en funcion de lo especificado en la estructura I2C_XFER_T
+ */
+void MPU6050_wakeup(I2C_XFER_T * xfer)
+{
+		//Setea PWR_MGMT_1 y 2 en 0, el byte de cada uno
+		uint8_t wbuf[3] = {MPU6050_RA_PWR_MGMT_1, 0, 0};
+		xfer->slaveAddr = MPU6050_DEVICE_ADDRESS;
+		xfer->txBuff = wbuf;
+		xfer->txSz = 3;
+		xfer->rxSz = 0;
 
+		//Chip_I2C_MasterSend(I2C1, xfer->slaveAddr, xfer->txBuff, xfer->txSz);
+		do{
+			Chip_I2C_MasterTransfer(I2C1, xfer);
+		}while(xfer->status != I2C_STATUS_DONE);
 }
 
 /** @} doxygen end group definition */

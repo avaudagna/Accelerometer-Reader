@@ -63,6 +63,11 @@ extern "C" {
 
 /*==================[macros]=================================================*/
 
+#define MPU6050_I2C_SLAVE_ADDRESS 0x68
+#define STATIC_0x40_REFERENCE_REGISTER 0x6B
+#define ACCEL_XOUT_H 0x3B
+#define ACCEL_XOUT_L 0x3C
+
 /*==================[typedef]================================================*/
 
 /*==================[external data declaration]==============================*/
@@ -73,6 +78,8 @@ extern "C" {
  * @return main function should never return
  */
 int main(void);
+void MPU6050_wakeup(I2C_XFER_T * xfer);
+void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
 
 /*==================[cplusplus]==============================================*/
 
