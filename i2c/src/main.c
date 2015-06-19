@@ -70,6 +70,7 @@
 #define MPU6050_DEVICE_ADDRESS   0x68
 #define MPU6050_RA_ACCEL_XOUT_H  0x3B
 #define MPU6050_RA_PWR_MGMT_1    0x6B
+#define MPU6050_RA_PWR_MGMT_2    0x6C
 #define MPU6050_PWR1_SLEEP_BIT   6
 /*==================[internal data declaration]==============================*/
 
@@ -123,13 +124,10 @@ int main(void)
 	uint8_t rbuf[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	uint16_t samples[10] = {0,0,0,0,0,0,0,0,0,0}; //cada posicion es de 16 bits, necesario para guardar
 												  //la parte low y high de las muestras de accel
+	//uint32_t ii;
 	//uint32_t i;
 
-
 	I2C_XFER_T xfer;
-
-	int i =0;
-
 
 	initHardware();
 
@@ -147,25 +145,54 @@ int main(void)
 
 	MPU6050_wakeup(&xfer);
 
-	wbuf[0] = MPU6050_RA_ACCEL_XOUT_H;
+	wbuf[0] = MPU6050_RA_PWR_MGMT_1;
+
+	//Lectura de PWR_MGMMT_1 2
+	I2C_XFER_T_config(&xfer, rbuf, 2, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+
+
+	wbuf[0]=MPU6050_RA_ACCEL_XOUT_H;
+	wbuf[1]=0;
+
 	while(1)
 	{
-		I2C_XFER_T_config(&xfer, rbuf, 10, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+	//	for(ii=0;ii<1000000;ii++);
 
-			//De momento leer rbuf es lo mismo que leer xfer.rxBuff porque apuntan a la misma direccion
-			samples[0]=(rbuf[0] << 8) | rbuf[1]; //Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR
-												//para tener en los 8 primeros la parte baja
-			//printf("%d", rbuf[0]);
+		I2C_XFER_T_config(&xfer, rbuf, 14, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+
+		//De momento leer rbuf es lo mismo que leer xfer.rxBuff porque apuntan a la misma direccion
+		samples[0]=(rbuf[0] << 8) | rbuf[1]; //Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR
+											//para tener en los 8 primeros la parte baja
+		samples[1]=(rbuf[2] << 8) | rbuf[3];
+		samples[2]=(rbuf[4] << 8) | rbuf[5];
+		samples[3]=(rbuf[6] << 8) | rbuf[7];
+		samples[4]=(rbuf[8] << 8) | rbuf[9];
+		samples[5]=(rbuf[10] << 8) | rbuf[11];
+		samples[6]=(rbuf[12] << 8) | rbuf[13];
+
 	}
 
 	return 0;
 }
 
+/*
+ * Configura la estructura XFER para realizar la comunicacion i2c.
+ * * xfer	  : Puntero a la estructura del tipo I2C_XFER_T necesaria para utilizar la funcion Chip_I2C_MasterTransfer.
+ * 				Chip_I2C_MasterTransfer : Funcion que resuelve la interaccion i2c en funcion de lo especificado en la estructura I2C_XFER_T
+ *	 rbuf 	  : Puntero al buffer de lectura donde se volcaran los bytes leidos
+ *	 rxSz 	  : Cantidad de bytes que se leeran y volcaran en rbuf
+ *	 slaveAddr: Direccion estatica del slave con el que se desea comunicar
+ *	 status   : Estado de la comunicacion, (estado inicial 0)
+ *	 wbuf	  : Buffer de escritura donde se colocara tanto el registro que se desea escribir como el dato que desea ser escrito
+ *	 			Ej de uso: wbuf[] = {reg_inicial, dato} solo escribe el byte dato en reg_inicial
+ *	 					   wbuf[] = {reg_inicial, dato1, dato2} escribe el byte dato1 en reg_incial y dato2 en reg_inicial+1 (el registro siguiente)
+ *	 txSz	  : La cantidad de bytes que se desean enviar, osea empezando a leer wbuf desde 0 inclusive, cuantos bytes manda de ese buffer
+ *	 			Ej : wbuf[] = {reg_inicial, dato1, dato2}, entonces txSz deberia ser = 3
+ *	 				 wbuf[] = {reg_inicial}, (caso tipico de solo lectura de ese registro), entonces txSz deberia ser = 1
+ */
 
 void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz)
 {
-	//I2C_XFER_T  xfer_aux = *xfer;
-
 	xfer->rxBuff = rbuf; //Buffer de lectura
 	xfer->rxSz = rxSz;	//cantidad de bytes que se desean leer, arbitrariamente seteamos 10
 	xfer->slaveAddr = slaveAddr; //Adress estatica del dispositivo i2c a leer (MPU6050)
@@ -173,18 +200,28 @@ void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slave
 	xfer->txBuff = wbuf; //Buffer de escritura
 	xfer->txSz = txSz; //cantidad de bytes que se desean escribir, solo escribimos el registro desde
 					//el que comenzamos a leer
-
-	Chip_I2C_MasterTransfer(I2C1, xfer);
+	do{
+		Chip_I2C_MasterTransfer(I2C1, xfer);
+	}while(xfer->status != I2C_STATUS_DONE);
 
 }
 
+/*
+ * Se encarga de inicializar los registros de PWR_MGMT necesarios para habilitar los
+ *  sensores (acelerometro y giroscopo) en cada eje, para sus lecturas.
+ *  La configuracion en la que quedan seteados es la por defecto:
+ *  accelerometer (±2g) , gyroscope (±250°/sec).
+ *
+ *  * xfer : Puntero a la estructura del tipo I2C_XFER_T necesaria para la utilizacion de Chip_I2C_MasterTransfer.
+ *  		 Chip_I2C_MasterTransfer : Funcion que resuelve la interaccion i2c en funcion de lo especificado en la estructura I2C_XFER_T
+ */
 void MPU6050_wakeup(I2C_XFER_T * xfer)
 {
-		//writeBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, 0);
-		uint8_t wbuf[2] = {MPU6050_RA_PWR_MGMT_1, 0};
+		//Setea PWR_MGMT_1 y 2 en 0, el byte de cada uno
+		uint8_t wbuf[3] = {MPU6050_RA_PWR_MGMT_1, 0, 0};
 		xfer->slaveAddr = MPU6050_DEVICE_ADDRESS;
 		xfer->txBuff = wbuf;
-		xfer->txSz = 2;
+		xfer->txSz = 3;
 		xfer->rxSz = 0;
 
 		//Chip_I2C_MasterSend(I2C1, xfer->slaveAddr, xfer->txBuff, xfer->txSz);
