@@ -160,7 +160,7 @@ int main(void)
 
 	//Lectura de PWR_MGMMT_1 2 (para verificar si se lo saco del sleep y de standby a los ejes)
 	wbuf[0] = MPU6050_RA_PWR_MGMT_1;
-	I2C_XFER_T_config(&xfer, rbuf, 2, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+	I2C_XFER_config(&xfer, rbuf, 2, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
 
 
 	//Configuracion de la 1era direccion desde la que se leeran los valores de los registros de los sensores
@@ -169,7 +169,7 @@ int main(void)
 
 	while(1)
 	{
-		I2C_XFER_T_config(&xfer, rbuf, 14, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
+		I2C_XFER_config(&xfer, rbuf, 14, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
 
 		Fill_Samples(&samples, &rbuf);
 	}
@@ -193,7 +193,7 @@ int main(void)
  *	 				 wbuf[] = {reg_inicial}, (caso tipico de solo lectura de ese registro), entonces txSz deberia ser = 1
  */
 
-void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz)
+void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz)
 {
 	xfer->rxBuff = rbuf; //Buffer de lectura
 	xfer->rxSz = rxSz;	//cantidad de bytes que se desean leer, arbitrariamente seteamos 10
@@ -225,7 +225,7 @@ void MPU6050_wakeup(I2C_XFER_T * xfer)
 		xfer->txSz = 3;
 		xfer->rxSz = 0;*/
 
-		I2C_XFER_T_config(xfer, xfer->rxBuff, 0, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 3);
+		I2C_XFER_config(xfer, xfer->rxBuff, 0, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 3);
 }
 
 /* Llena el vector de muestras samples con la data de los registros de ACCEL, GYRO y TEMP del MPU
