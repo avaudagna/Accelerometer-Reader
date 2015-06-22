@@ -79,7 +79,8 @@ extern "C" {
  */
 int main(void);
 void MPU6050_wakeup(I2C_XFER_T * xfer);
-void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
+void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
+void Fill_Samples(uint16_t * samples, uint8_t * rbuf);
 
 /*==================[cplusplus]==============================================*/
 
