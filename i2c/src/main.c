@@ -122,11 +122,25 @@ int main(void)
 	/*==================[Inicializacion]==========================*/
 	uint8_t wbuf[2] = {0,0};
 	uint8_t rbuf[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uint16_t samples[10] = {0,0,0,0,0,0,0,0,0,0}; //cada posicion es de 16 bits, necesario para guardar
-												  //la parte low y high de las muestras de accel
-	//uint32_t ii;
-	//uint32_t i;
-
+	//Se lo crea con 6 posiciones porque los registros que se procesan de los sensores son :
+	/*
+	ACCEL_XOUT_H
+	ACCEL_XOUT_L
+	ACCEL_YOUT_H
+	ACCEL_YOUT_L
+	ACCEL_ZOUT_H
+	ACCEL_ZOUT_L
+	TEMP_OUT_H
+	TEMP_OUT_L
+	GYRO_XOUT_H
+	GYRO_XOUT_L
+	GYRO_YOUT_H
+	GYRO_YOUT_L
+	GYRO_ZOUT_H
+	GYRO_ZOUT_L
+	 */
+	uint16_t samples[7] = {0,0,0,0,0,0,0}; //cada posicion es de 16 bits, necesario para guardar
+											//la parte low y high de las muestras de accel
 	I2C_XFER_T xfer;
 
 	initHardware();
@@ -134,9 +148,8 @@ int main(void)
 
 	/*==================[Configuracion del I2C_XFER_T]==========================*/
 
-	//Escritura
-
-	//Define el registro que se va a leer
+	// Metodo de Escritura
+	//Define el registro que se va a leer en la primera posicion de wbuf
 	//wbuf[0] = MPU6050_RA_ACCEL_XOUT_H; //Parte high de la lectura en x del acelerometro
 							//Como la lectura se realiza de forma secuencial, en la posicion 0
 							//del rbuf ira este dato y en la posicion 1 ira la correspondiente a
@@ -145,31 +158,20 @@ int main(void)
 
 	MPU6050_wakeup(&xfer);
 
+	//Lectura de PWR_MGMMT_1 2 (para verificar si se lo saco del sleep y de standby a los ejes)
 	wbuf[0] = MPU6050_RA_PWR_MGMT_1;
-
-	//Lectura de PWR_MGMMT_1 2
 	I2C_XFER_T_config(&xfer, rbuf, 2, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
 
 
+	//Configuracion de la 1era direccion desde la que se leeran los valores de los registros de los sensores
 	wbuf[0]=MPU6050_RA_ACCEL_XOUT_H;
 	wbuf[1]=0;
 
 	while(1)
 	{
-	//	for(ii=0;ii<1000000;ii++);
-
 		I2C_XFER_T_config(&xfer, rbuf, 14, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 1);
 
-		//De momento leer rbuf es lo mismo que leer xfer.rxBuff porque apuntan a la misma direccion
-		samples[0]=(rbuf[0] << 8) | rbuf[1]; //Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR
-											//para tener en los 8 primeros la parte baja
-		samples[1]=(rbuf[2] << 8) | rbuf[3];
-		samples[2]=(rbuf[4] << 8) | rbuf[5];
-		samples[3]=(rbuf[6] << 8) | rbuf[7];
-		samples[4]=(rbuf[8] << 8) | rbuf[9];
-		samples[5]=(rbuf[10] << 8) | rbuf[11];
-		samples[6]=(rbuf[12] << 8) | rbuf[13];
-
+		Fill_Samples(&samples, &rbuf);
 	}
 
 	return 0;
@@ -200,10 +202,7 @@ void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slave
 	xfer->txBuff = wbuf; //Buffer de escritura
 	xfer->txSz = txSz; //cantidad de bytes que se desean escribir, solo escribimos el registro desde
 					//el que comenzamos a leer
-	do{
-		Chip_I2C_MasterTransfer(I2C1, xfer);
-	}while(xfer->status != I2C_STATUS_DONE);
-
+	Chip_I2C_MasterTransfer(I2C1, xfer);
 }
 
 /*
@@ -218,16 +217,38 @@ void I2C_XFER_T_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slave
 void MPU6050_wakeup(I2C_XFER_T * xfer)
 {
 		//Setea PWR_MGMT_1 y 2 en 0, el byte de cada uno
+
+
 		uint8_t wbuf[3] = {MPU6050_RA_PWR_MGMT_1, 0, 0};
-		xfer->slaveAddr = MPU6050_DEVICE_ADDRESS;
+		/*xfer->slaveAddr = MPU6050_DEVICE_ADDRESS;
 		xfer->txBuff = wbuf;
 		xfer->txSz = 3;
-		xfer->rxSz = 0;
+		xfer->rxSz = 0;*/
 
-		//Chip_I2C_MasterSend(I2C1, xfer->slaveAddr, xfer->txBuff, xfer->txSz);
-		do{
-			Chip_I2C_MasterTransfer(I2C1, xfer);
-		}while(xfer->status != I2C_STATUS_DONE);
+		I2C_XFER_T_config(xfer, xfer->rxBuff, 0, MPU6050_I2C_SLAVE_ADDRESS, 0, wbuf, 3);
+}
+
+/* Llena el vector de muestras samples con la data de los registros de ACCEL, GYRO y TEMP del MPU
+ * Al estar la informacion en 16 bits y ser levantada por registros de 8, en rbuf esta la parte low
+ * 	y high de cada componente, por lo que se debe recomponer desplazando la parte high y concatenando la low]
+ * 	para obtener el valor que se midio. Proceso que se realiza en esta funcion para pasar a samples.
+ *
+ * 	 rbuf : Tiene la data leida por el MPU con la data dividida en high y low
+ * 	 samples : Tendra la data agrupada que representa al valor medido por los sensores en cada eje
+ */
+void Fill_Samples(uint16_t * samples, uint8_t * rbuf)
+{
+	//De momento leer rbuf es lo mismo que leer xfer.rxBuff porque apuntan a la misma direccion
+	//Desplazamos la parte alta a los 8 ultimos bits y le hacemos un OR para tener en los 8 primeros la parte baja
+
+
+	samples[0]=(rbuf[0] << 8) | rbuf[1];
+	samples[1]=(rbuf[2] << 8) | rbuf[3];
+	samples[2]=(rbuf[4] << 8) | rbuf[5];
+	samples[3]=(rbuf[6] << 8) | rbuf[7];
+	samples[4]=(rbuf[8] << 8) | rbuf[9];
+	samples[5]=(rbuf[10] << 8) | rbuf[11];
+	samples[6]=(rbuf[12] << 8) | rbuf[13];
 }
 
 /** @} doxygen end group definition */
