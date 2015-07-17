@@ -11,5 +11,5 @@ Branches:
 	Dev_RealReading:	Aca es donde se realizan las modificaciones relacionadas al 
 				metodo de calcular (algoritmo) los angulos finales.
 
-	Dev_Send_Angles: 	Donde se modifica la parte de enviar los datos por UART. 
+	Dev_Send_Angles: 	Donde se modifica la parte de enviar los datos por UART.
 
