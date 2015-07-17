@@ -55,6 +55,7 @@
 
 /*==================[inclusions]=============================================*/
 
+#include <math.h>
 /*==================[cplusplus]==============================================*/
 
 #ifdef __cplusplus
@@ -82,6 +83,16 @@ void MPU6050_wakeup(I2C_XFER_T * xfer);
 void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
 void Fill_Samples(uint16_t * samples, uint8_t * rbuf);
 
+
+void calibrate_sensors();
+
+unsigned long get_last_time();
+float get_last_x_angle();
+float get_last_y_angle();
+float get_last_z_angle();
+float get_last_gyro_x_angle();
+float get_last_gyro_y_angle();
+float get_last_gyro_z_angle();
 /*==================[cplusplus]==============================================*/
 
 #ifdef __cplusplus
