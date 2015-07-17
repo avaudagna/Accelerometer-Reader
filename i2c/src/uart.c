@@ -98,10 +98,10 @@ int UART_Init (void)
 	//uint8_t key;
 	//int bytes;
 
-	SystemCoreClockUpdate();
-	Board_Init();
+//	SystemCoreClockUpdate();
+//	Board_Init();
 	Board_UART_Init(UART_SELECTION);
-	Board_LED_Set(0, false);
+//	Board_LED_Set(0, false);
 
 	/* Setup UART for 115.2K8N1 */
 	Chip_UART_Init(UART_SELECTION);
