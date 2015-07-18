@@ -62,7 +62,9 @@ extern "C" {
 #endif
 
 /*==================[macros]=================================================*/
-
+#define MPU6050_I2C_DEVICE_ADDRESS   0x68
+#define MPU6050_RA_PWR_MGMT_1    0x6B
+#define MPU6050_RA_PWR_MGMT_2    0x6C
 /*==================[typedef]================================================*/
 
 /*==================[external data declaration]==============================*/
@@ -73,6 +75,15 @@ extern "C" {
  * @return main function should never return
  */
 int main(void);
+/** @brief I2C config function. Resolves the i2c com.
+ * @return main function should never return
+ */
+void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
+/** @brief I2C config function. Resolves the i2c com.
+ * @return main function should never return
+ */
+void MPU6050_wakeup(I2C_XFER_T * xfer);
+
 
 /*==================[cplusplus]==============================================*/
 
