@@ -67,6 +67,16 @@ extern "C" {
 #define MPU6050_RA_PWR_MGMT_2    0x6C
 /*==================[typedef]================================================*/
 
+typedef struct mpu_data
+{
+   uint16_t   ax;
+   uint16_t   ay;
+   uint16_t   az;
+   uint16_t   gx;
+   uint16_t   gy;
+   uint16_t   gz;
+} mpu_data;
+
 /*==================[external data declaration]==============================*/
 
 /*==================[external functions declaration]=========================*/
@@ -84,6 +94,8 @@ void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAd
  */
 void MPU6050_wakeup(I2C_XFER_T * xfer);
 
+
+void registers_setup_MPU6050(void);
 
 /*==================[cplusplus]==============================================*/
 
