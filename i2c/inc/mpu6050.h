@@ -20,6 +20,8 @@
 #define MPU6050_RA_PWR_MGMT_2    	 0x6C
 #define MPU6050_RA_FIFO_R_W 0x74
 #define MPU6050_RA_FIFO_COUNTH		 0x72
+#define MPU6050_RA_USER_CTRL 		 0x6A
+#define MPU6050_RA_SELF_TEST_X		 0x0D
 
 /*==================[typedef]================================================*/
 
@@ -39,5 +41,6 @@ void Fill_Mpu_Data(mpu_data * mdata, uint8_t * rbuf);
 void registers_setup_MPU6050(void);
 mpu_data * BurstRead (int cant, int fifo_size);
 uint16_t FIFO_Count(void);
+void reg_set_regs_inet(void);
 
 #endif
