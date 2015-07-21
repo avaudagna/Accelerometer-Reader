@@ -1,6 +1,8 @@
 
 
 #include "i2c.h"
+#include <stdlib.h>
+
 /*
  * Configura la estructura XFER para realizar la comunicacion i2c.
  * * xfer	  : Puntero a la estructura del tipo I2C_XFER_T necesaria para utilizar la funcion Chip_I2C_MasterTransfer.
@@ -28,3 +30,60 @@ void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAd
 					//el que comenzamos a leer
 	Chip_I2C_MasterTransfer(I2C1, xfer);
 }
+
+
+uint8_t * I2C_ReadByte(uint8_t slaveAddr, uint8_t regAddr)
+{
+	I2C_XFER_T xfer;
+	uint8_t rbuf[]={0};
+	uint8_t wbuf[]={regAddr};
+	xfer.rxBuff = rbuf; //Buffer de lectura
+	xfer.rxSz = 1;	//cantidad de bytes que se desean leer, en este caso 1
+	xfer.slaveAddr = slaveAddr; //Adress estatica del dispositivo i2c a leer (MPU6050)
+	xfer.status = 0; //Siempre lo seteamos en 0
+	xfer.txBuff = wbuf; //Buffer de escritura
+	xfer.txSz = 1; //cantidad de bytes que se desean escribir, en este caso solo la
+					//regAddr del registro que queremos leer
+	Chip_I2C_MasterTransfer(I2C1, &xfer);
+
+	return rbuf;
+}
+
+uint8_t * I2C_ReadBytes(uint8_t slaveAddr, uint8_t regAddr, int cant)
+{
+	I2C_XFER_T xfer;
+	uint8_t * rbuf = (uint8_t*) calloc(cant,sizeof(uint8_t));
+	if (rbuf==NULL)
+		return NULL;
+	uint8_t wbuf[]={regAddr};
+	xfer.rxBuff = rbuf; //Buffer de lectura
+	xfer.rxSz = cant;	//cantidad de bytes que se desean leer, en este caso cant
+	xfer.slaveAddr = slaveAddr; //Adress estatica del dispositivo i2c a leer (MPU6050)
+	xfer.status = 0; //Siempre lo seteamos en 0
+	xfer.txBuff = wbuf; //Buffer de escritura
+	xfer.txSz = 1; //cantidad de bytes que se desean escribir, en este caso solo la
+					//regAddr del registro que queremos leer
+	Chip_I2C_MasterTransfer(I2C1, &xfer);
+
+	return rbuf;
+}
+
+
+
+
+void I2C_WriteByte(uint8_t slaveAddr, uint8_t regAddr, uint8_t write_value)
+{
+	I2C_XFER_T xfer;
+	uint8_t rbuf[]={0};
+	uint8_t wbuf[]={regAddr,write_value};
+	xfer.rxBuff = rbuf; //Buffer de lectura
+	xfer.rxSz = 0;	//cantidad de bytes que se desean leer, en este caso 0
+	xfer.slaveAddr = slaveAddr; //Adress estatica del dispositivo i2c a leer (MPU6050)
+	xfer.status = 0; //Siempre lo seteamos en 0
+	xfer.txBuff = wbuf; //Buffer de escritura
+	xfer.txSz = 2; //cantidad de bytes que se desean escribir, en este caso solo la
+					//regAddr del registro que queremos leer
+	Chip_I2C_MasterTransfer(I2C1, &xfer);
+}
+
+

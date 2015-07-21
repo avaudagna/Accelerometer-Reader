@@ -15,6 +15,8 @@
  * @return main function should never return
  */
 void I2C_XFER_config (I2C_XFER_T * xfer,uint8_t *rbuf, int rxSz, uint8_t slaveAddr, I2C_STATUS_T status, uint8_t * wbuf, int txSz);
-
+uint8_t * I2C_ReadByte(uint8_t slaveAddr, uint8_t regAddr);
+void I2C_WriteByte(uint8_t slaveAddr, uint8_t regAddr, uint8_t write_value);
+uint8_t * I2C_ReadBytes(uint8_t slaveAddr, uint8_t regAddr, int cant);
 
 #endif
