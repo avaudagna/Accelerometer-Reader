@@ -33,7 +33,7 @@ int main(void);
  * @return main function should never return
  */
 
-
+//void InitMPU(void);
 
 /*==================[cplusplus]==============================================*/
 

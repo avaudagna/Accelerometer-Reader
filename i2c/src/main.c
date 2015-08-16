@@ -15,7 +15,7 @@
  *	@return none
  */
 static void initHardware(void);
-void InitMPU(void);
+//void InitMPU(void);
 /*==================[internal data definition]===============================*/
 
 
