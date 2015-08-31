@@ -42,5 +42,5 @@ void registers_setup_MPU6050(void);
 mpu_data * BurstRead (int cant, int fifo_size);
 uint16_t FIFO_Count(void);
 void reg_set_regs_inet(void);
-
+uint8_t * Read_FIFO(int samples_cant, mpu_data ** mdata);
 #endif

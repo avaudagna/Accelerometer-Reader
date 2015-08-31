@@ -3,6 +3,10 @@
 
 #include "main.h"
 
+
+#include "Infotronic.h"
+
+
 #include <stdio.h>
 /*==================[macros and definitions]=================================*/
 
@@ -51,26 +55,46 @@ static void initHardware(void)
 
 /*==================[external functions definition]==========================*/
 
+
+
+volatile uint8_t BufferSalidas;				//!< Buffer de Salidas Relay
+volatile uint8_t BufferEntradas;				//!< Buffer de Entradas Digitales
+
+uint8_t BuffRX[MAX_RX];
+uint8_t BuffTX[MAX_TX];
+
+uint8_t IndiceBuff_InRX = 0;
+uint8_t IndiceBuff_OutRX = 0;
+uint8_t IndiceBuff_InTX = 0;
+uint8_t IndiceBuff_OutTX = 0;
+
+volatile uint8_t flagTX = 0;
+volatile uint8_t flagRX = 0;
+
+char stringTX[7] = {'#','a','e','i','o','u','$'};
+
+
 int main(void)
 {
 	/*==================[Inicializacion]==========================*/
 	uint8_t wbuf[3] = {0,0,0};
 	uint8_t rbuf[10] = {0,0,0,0,0,0,0,0,0,0};
-	uint8_t *prbuf;
-	int i;
+	uint8_t * prbuf;
+	int i=0;
 	I2C_XFER_T xfer;
 	uint16_t fifo_count=0;
 	int samples_cant=0;
+	char msg[100];
 
 	//Del LPC
 	initHardware();
 
-
+	UART0_Init();
 
 	/*==================[INET MPU CONF CHECK]==========================*/
 	reg_set_regs_inet();//Setea todos los registros necesarios para utilizar la FIFO
 
-	samples_cant=10; //Porque pinta, esto puede tomar cualquier valor
+	samples_cant=1; //Porque pinta, esto puede tomar cualquier valor
 
 	mpu_data * mdata=(mpu_data *) calloc(samples_cant,sizeof(mpu_data));
 	if (mdata==NULL)
@@ -80,10 +104,29 @@ int main(void)
 
 	prbuf=Read_FIFO(samples_cant, &mdata); //seteo para leer 10 samples porque si
 
-	for(i=0;i<120;i++)
+	for(i=0;i<12;i++)
 	{
 		printf("PRBUF_FIFO_R_W_CHK:prbuf[%d]=%d\n",i,*(prbuf+i));
-	}
+		sprintf(msg,"%d\n",*(prbuf+i));
+		Transmitir(msg);
+	}/*
+	sprintf(msg,"a%d\n b%d\n c%d\n d%d\n e%d\n f%d\n g%d\n h%d\n i%d\n j%d\n k%d\n l%d\n",
+			*(prbuf),*(prbuf+1),*(prbuf+2),*(prbuf+3),*(prbuf+4),*(prbuf+5),*(prbuf+6),*(prbuf+7)
+			,*(prbuf+8),*(prbuf+9),*(prbuf+10),*(prbuf+11));
+	//a: ACC_X_H
+	//b: ACC_X_L
+	//c: ACC_Y_H
+	//d: ACC_Y_L
+	//e: ACC_Z_H
+	//f: ACC_Z_L
+	//g: GYR_X_H
+	//h: GYR_X_L
+	//i: GYR_Y_H
+	//j: GYR_Y_L
+	//k: GYR_Z_H
+	//l: GYR_Z_L
+
+	Transmitir(msg);*/
 	while(1)
 	{
 		//Lo que se podria hacer es una interrupcion que cada 1,5 ms

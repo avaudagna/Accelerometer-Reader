@@ -126,7 +126,7 @@ void reg_set_regs_inet(void)
  * La idea de que mdata sea ** es que se guarden directamente
  * en la estructura que se creo en el main los datos de la FIFO que se lean
  */
-void Read_FIFO(int samples_cant, mpu_data ** mdata)
+uint8_t * Read_FIFO(int samples_cant, mpu_data ** mdata)
 {
 	//uint16_t fifo_count_check=0,packet_count_check=0; //CHECK
 	I2C_XFER_T xfer;//CHECK
